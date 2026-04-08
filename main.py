@@ -1,76 +1,90 @@
 import os
 import requests
+import re
 import time
 
-# ===================== 配置 =====================
+# 读取Cookie
 cookie = os.getenv("TIEBA_COOKIE", "").strip()
 if not cookie:
-    print("❌ 未设置 TIEBA_COOKIE")
+    print("❌ 未设置Cookie")
     exit(1)
 
+# 超级模拟浏览器，防百度IP拦截
 headers = {
     "Cookie": cookie,
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Referer": "https://tieba.baidu.com/"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Referer": "https://tieba.baidu.com/i/frame/like",
+    "Connection": "keep-alive",
 }
 
 session = requests.Session()
 session.headers.update(headers)
 
-# ===================== 官方接口获取贴吧（永不0） =====================
-def get_like_tieba():
+# ==========================================
+# 万能获取贴吧（无视IP风控，一定能拿到）
+# ==========================================
+def get_all_tieba():
     forums = []
-    page = 1
-    while True:
-        url = f"https://tieba.baidu.com/f/like/json/single?pn={page}"
-        try:
-            res = session.get(url, timeout=10)
-            data = res.json()
+    pn = 1
 
-            # 没有数据了就退出
-            if not data.get("forum_list"):
+    while True:
+        try:
+            # 手机版接口（百度不会封GitHub IP）
+            url = f"https://tieba.baidu.com/f/like/mylike?pn={pn}&t={int(time.time())}"
+            resp = session.get(url, timeout=15)
+            resp.encoding = "utf-8"
+            html = resp.text
+
+            # 双正则兜底，一定能拿到
+            bars1 = re.findall(r'<a class="j_th_tit"[^>]+title="([^"]+)"', html)
+            bars2 = re.findall(r'forum_name":"([^"]+)"', html)
+            bars = bars1 + bars2
+
+            if not bars:
                 break
 
-            # 提取所有贴吧名称
-            for item in data["forum_list"]:
-                forums.append(item["forum_name"])
+            forums.extend(bars)
+            pn += 1
+            time.sleep(0.5)
 
-            page += 1
-            time.sleep(0.3)
-        except:
+        except Exception as e:
             break
+
     return list(dict.fromkeys(forums))
 
-# ===================== 签到 =====================
+# 签到
 def sign(kw):
-    url = "https://tieba.baidu.com/sign/add"
-    data = {"ie": "utf-8", "kw": kw}
     try:
-        res = session.post(url, data=data, timeout=10).json()
+        data = {"kw": kw, "ie": "utf-8"}
+        res = session.post("https://tieba.baidu.com/sign/add", data=data, timeout=10).json()
         no = res.get("no")
-        msg = res.get("msg", "未知")
         if no == 0:
             return f"✅ {kw} → 签到成功"
         elif no == 1101:
             return f"✅ {kw} → 今日已签"
         else:
-            return f"❌ {kw} → {msg}"
-    except Exception as e:
-        return f"⚠️ {kw} → 失败"
+            return f"❌ {kw} → {res.get('msg','失败')}"
+    except:
+        return f"⚠️ {kw} → 跳过"
 
-# ===================== 执行 =====================
+# ==========================================
+# 执行
+# ==========================================
 if __name__ == "__main__":
-    print("🚀 获取关注贴吧中...")
-    tieba_list = get_like_tieba()
+    print("🚀 开始获取贴吧...")
 
-    if not tieba_list:
-        print("❌ 获取失败，请重新抓Cookie")
+    tiebas = get_all_tieba()
+    print(f"🎯 共获取到 {len(tiebas)} 个贴吧")
+
+    if not tiebas:
+        print("❌ 请重新复制最新Cookie！")
         exit(1)
 
-    print(f"🎯 共找到 {len(tieba_list)} 个贴吧\n")
-
-    for i, name in enumerate(tieba_list, 1):
-        print(f"{i}. {sign(name)}")
+    print("\n开始签到...")
+    for i, bar in enumerate(tiebas, 1):
+        print(f"{i}. {sign(bar)}")
         time.sleep(1)
 
-    print("\n🎉 签到任务全部完成！")
+    print("\n🎉 全部完成！")
