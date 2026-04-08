@@ -31,7 +31,7 @@ def get_like_forums():
     pn = 1
     while True:
         # 分页接口（pn=页数）
-        url = f"https://tieba.baidu.com/f/like/mylike?pn={pn}"
+        url = f"https://tieba.baidu.com/f/like/mylike?&pn={pn}"
         res = session.get(url)
         html = res.text
         
