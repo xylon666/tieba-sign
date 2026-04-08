@@ -1,0 +1,26 @@
+name: 贴吧自动签到
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # 每天 UTC 0点运行（北京时间早上8点）
+  workflow_dispatch:      # 允许手动触发
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Run sign
+        env:
+          TIEBA_COOKIE: ${{ secrets.TIEBA_COOKIE }}
+        run: python main.py
