@@ -2,22 +2,22 @@ name: 贴吧自动签到
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # 每天 UTC 0点运行（北京时间早上8点）
-  workflow_dispatch:      # 允许手动触发
+    - cron: "13 1 * * *"  # 北京时间 09:13
+  workflow_dispatch:
 
 jobs:
   sign:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
-      - name: Install requests
+      - name: Install dependencies
         run: pip install requests
 
       - name: Run sign
