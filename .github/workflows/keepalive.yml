@@ -1,0 +1,19 @@
+name: Keepalive
+on:
+  schedule:
+    - cron: "0 0 */45 * *"  # 每45天跑一次
+  workflow_dispatch:       # 允许手动触发
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep alive
+        uses: gautamkrishnar/keepalive-workflow@v2
+        with:
+          committer_username: "github-actions[bot]"
+          committer_email: "github-actions[bot]@users.noreply.github.com"
+          time_elapsed: 45  # 距上次提交45天后自动保活
